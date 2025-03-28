@@ -24,7 +24,7 @@ pub struct Config {
     version_requested: bool,
     today_start: bool,
     no_leaf_dirs: bool,
-    startingpoints_from_file: Option<String>, // MARK
+    startingpoints_from_file: Option<String>,
     follow: Follow,
 }
 
@@ -100,9 +100,7 @@ fn read_nul_seperated_lines(filename: &str) -> std::io::Result<Vec<String>> {
 
     let mut raw = String::new();
 
-    // MARK
     if filename == "-" {
-        // TODO: proper error handling
         std::io::stdin().read_line(&mut raw)?;
     } else {
         raw = std::fs::read_to_string(filename)?;
@@ -151,13 +149,9 @@ fn parse_args(args: &[&str]) -> Result<ParsedInfo, Box<dyn Error>> {
 
     let matcher = matchers::build_top_level_matcher(&args[i..], &mut config)?;
 
-    // MARK
     if let Some(filename) = &config.startingpoints_from_file {
         if !paths.is_empty() {
-            // TODO: proper error handling
-            eprintln!("extra operand ‘{}’", paths[0]);
-            eprintln!("file operands cannot be combined with -files0-from");
-            panic!();
+            return Err(From::from(format!("extra operand ‘{}’\nfile operands cannot be combined with -files0-from", paths[0])));
         }
 
         paths = read_nul_seperated_lines(filename.as_str())?;

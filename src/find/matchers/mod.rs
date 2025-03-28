@@ -884,7 +884,6 @@ fn build_matcher_tree(
                 i += 1;
                 Some(TrueMatcher.into_box())
             }
-            // MARK
             "-files0-from" => {
                 if i >= args.len() - 1 {
                     return Err(From::from(format!("missing argument to {}", args[i])));
