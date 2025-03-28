@@ -164,9 +164,6 @@ fn parse_args(args: &[&str]) -> Result<ParsedInfo, Box<dyn Error>> {
 
     } else if i == paths_start {
         paths.push(".".to_string());
-
-    } else {
-        unreachable!("paths should either come from first argument, or -files0-from");
     }
 
     Ok(ParsedInfo {
