@@ -24,6 +24,7 @@ pub struct Config {
     version_requested: bool,
     today_start: bool,
     no_leaf_dirs: bool,
+    startingpoints_from_file: Option<String>, // MARK
     follow: Follow,
 }
 
@@ -42,6 +43,7 @@ impl Default for Config {
             // and this configuration field will exist as
             // a compatibility item for GNU findutils.
             no_leaf_dirs: false,
+            startingpoints_from_file: None,
             follow: Follow::Never,
         }
     }
@@ -93,6 +95,25 @@ struct ParsedInfo {
     config: Config,
 }
 
+/// Read a NUL delimited string of starting points from a file or stdin
+fn read_nul_seperated_lines(filename: &str) -> std::io::Result<Vec<String>> {
+
+    let mut raw = String::new();
+
+    // MARK
+    if filename == "-" {
+        // TODO: proper error handling
+        std::io::stdin().read_line(&mut raw)?;
+    } else {
+        raw = std::fs::read_to_string(filename)?;
+    }
+
+    Ok(raw
+        .split(|elem| elem == '\0')
+        .map(|elem| elem.to_string())
+        .collect::<Vec<String>>())
+}
+
 /// Function to generate a `ParsedInfo` from the strings supplied on the command-line.
 fn parse_args(args: &[&str]) -> Result<ParsedInfo, Box<dyn Error>> {
     let mut paths = vec![];
@@ -127,10 +148,27 @@ fn parse_args(args: &[&str]) -> Result<ParsedInfo, Box<dyn Error>> {
         paths.push(args[i].to_string());
         i += 1;
     }
-    if i == paths_start {
-        paths.push(".".to_string());
-    }
+
     let matcher = matchers::build_top_level_matcher(&args[i..], &mut config)?;
+
+    // MARK
+    if let Some(filename) = &config.startingpoints_from_file {
+        if !paths.is_empty() {
+            // TODO: proper error handling
+            eprintln!("extra operand ‘{}’", paths[0]);
+            eprintln!("file operands cannot be combined with -files0-from");
+            panic!();
+        }
+
+        paths = read_nul_seperated_lines(filename.as_str())?;
+
+    } else if i == paths_start {
+        paths.push(".".to_string());
+
+    } else {
+        unreachable!("paths should either come from first argument, or -files0-from");
+    }
+
     Ok(ParsedInfo {
         matcher,
         paths,
